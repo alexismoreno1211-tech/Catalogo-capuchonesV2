@@ -6,7 +6,6 @@
 <title>Catálogo de Capuchones</title>
 
 <style>
-
 :root{
 --primary:#2c7be5;
 --dark:#1e2a38;
@@ -20,7 +19,6 @@ background:var(--bg);
 margin:0;
 }
 
-/* HEADER */
 header{
 background:linear-gradient(90deg,var(--dark),var(--primary));
 color:white;
@@ -32,10 +30,8 @@ box-shadow:0 4px 15px rgba(0,0,0,0.2);
 header h1{
 margin:0;
 font-size:28px;
-letter-spacing:1px;
 }
 
-/* CONTROLES */
 .controls{
 display:flex;
 justify-content:center;
@@ -46,17 +42,9 @@ flex-wrap:wrap;
 
 input{
 padding:12px;
-font-size:14px;
 width:240px;
 border-radius:8px;
 border:1px solid #ccc;
-outline:none;
-transition:0.2s;
-}
-
-input:focus{
-border-color:var(--primary);
-box-shadow:0 0 5px rgba(44,123,229,0.3);
 }
 
 button{
@@ -66,25 +54,9 @@ background:var(--primary);
 color:white;
 cursor:pointer;
 border-radius:8px;
-transition:0.2s;
 font-weight:600;
 }
 
-button:hover{
-transform:translateY(-2px);
-background:#1a5fd1;
-}
-
-/* CONTADOR */
-#contador{
-text-align:center;
-font-size:18px;
-font-weight:600;
-margin-bottom:10px;
-color:#333;
-}
-
-/* GRID */
 .catalogo{
 display:grid;
 grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
@@ -92,23 +64,15 @@ gap:25px;
 padding:20px;
 }
 
-/* CARD */
 .card{
 background:var(--card);
 border-radius:14px;
 box-shadow:0 8px 20px rgba(0,0,0,0.08);
 padding:12px;
-transition:0.3s;
+text-align:center;
 position:relative;
-overflow:hidden;
 }
 
-.card:hover{
-transform:translateY(-5px) scale(1.02);
-box-shadow:0 12px 25px rgba(0,0,0,0.15);
-}
-
-/* BADGE BODEGA */
 .card::after{
 content:attr(data-bodega);
 position:absolute;
@@ -121,16 +85,13 @@ padding:3px 8px;
 border-radius:6px;
 }
 
-/* IMAGEN */
 .img-container{
-width:100%;
 height:220px;
 display:flex;
 align-items:center;
 justify-content:center;
-overflow:hidden;
-border-radius:10px;
 background:#f1f3f7;
+border-radius:10px;
 }
 
 .img-container img{
@@ -138,21 +99,8 @@ max-width:100%;
 max-height:100%;
 object-fit:contain;
 cursor:pointer;
-transition:0.3s;
 }
 
-.img-container img:hover{
-transform:scale(1.08);
-}
-
-/* TEXTO */
-.card p{
-margin:10px 0 5px;
-font-weight:600;
-color:#444;
-}
-
-/* MODAL */
 .modal{
 display:none;
 position:fixed;
@@ -163,14 +111,11 @@ height:100%;
 background:rgba(0,0,0,0.9);
 justify-content:center;
 align-items:center;
-z-index:1000;
 }
 
 .modal img{
 max-width:85%;
 max-height:85%;
-border-radius:12px;
-box-shadow:0 0 20px rgba(0,0,0,0.5);
 }
 
 .close{
@@ -180,19 +125,7 @@ right:40px;
 font-size:35px;
 color:white;
 cursor:pointer;
-transition:0.2s;
 }
-
-.close:hover{
-color:#ff4d4d;
-}
-
-/* RESPONSIVE */
-@media(max-width:600px){
-header h1{font-size:22px}
-input{width:100%}
-}
-
 </style>
 
 </head>
@@ -204,16 +137,13 @@ input{width:100%}
 </header>
 
 <div class="controls">
-
 <input type="text" id="buscador" placeholder="Buscar foto...">
-
 <button onclick="mostrarBodega('todas')">Todas</button>
 <button onclick="mostrarBodega('b1')">Bodega 1</button>
 <button onclick="mostrarBodega('b2')">Bodega 2</button>
-
 </div>
 
-<div id="contador"></div>
+<div id="contador" style="text-align:center;font-weight:bold;"></div>
 
 <div class="catalogo" id="catalogo"></div>
 
@@ -222,8 +152,36 @@ input{width:100%}
 <img id="imagenGrande">
 </div>
 
-<script>
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
+<script>
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH",
+  projectId: "TU_PROJECT"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let inventario = [];
+
+// 🔥 TIEMPO REAL
+db.collection("inventario").onSnapshot(snap=>{
+  inventario = snap.docs.map(d=>d.data());
+  actualizarStock();
+});
+
+function obtenerStock(bodega, numero){
+  let item = inventario.find(i => 
+    i.bodega === bodega && i.foto == numero
+  )
+  return item ? item.stock : 0
+}
+
+// CREAR CARDS
 const catalogo = document.getElementById("catalogo")
 
 const bodega1 = 60
@@ -260,35 +218,53 @@ img.onclick = function(){ abrir(this) }
 let titulo = document.createElement("p")
 titulo.innerText = `Foto ${numero}`
 
+let stock = document.createElement("p")
+stock.id = `stock-${clase}-${numero}`
+stock.innerText = "Stock: ..."
+stock.style.fontWeight = "bold"
+
 container.appendChild(img)
 card.appendChild(container)
 card.appendChild(titulo)
+card.appendChild(stock)
 
 catalogo.appendChild(card)
 }
 
 crearImagenes()
 
-const buscador = document.getElementById("buscador")
+// 🔥 ACTUALIZA STOCK
+function actualizarStock(){
+  inventario.forEach(it=>{
+    let el = document.getElementById(`stock-${it.bodega}-${it.foto}`)
+    if(el){
+      el.innerText = "Stock: " + it.stock
 
-buscador.addEventListener("keyup", function(){
+      if(it.stock == 0){
+        el.style.color = "red"
+      }else if(it.stock < 50){
+        el.style.color = "orange"
+      }else{
+        el.style.color = "green"
+      }
+    }
+  })
+}
 
-let texto = buscador.value.toLowerCase()
+// BUSCADOR
+document.getElementById("buscador").addEventListener("keyup", function(){
+let texto = this.value.toLowerCase()
 let cards = document.querySelectorAll(".card")
 
 cards.forEach(c=>{
 let nombre = c.innerText.toLowerCase()
 c.style.display = nombre.includes(texto) ? "block" : "none"
 })
-
-actualizarContador()
-
 })
 
+// FILTRO
 function mostrarBodega(bodega){
-
 let cards = document.querySelectorAll(".card")
-
 cards.forEach(c=>{
 if(bodega==="todas" || c.classList.contains(bodega)){
 c.style.display="block"
@@ -296,10 +272,9 @@ c.style.display="block"
 c.style.display="none"
 }
 })
-
-actualizarContador()
 }
 
+// MODAL
 function abrir(img){
 document.getElementById("modal").style.display="flex"
 document.getElementById("imagenGrande").src = img.src
@@ -308,24 +283,6 @@ document.getElementById("imagenGrande").src = img.src
 function cerrar(){
 document.getElementById("modal").style.display="none"
 }
-
-function actualizarContador(){
-
-let cards = document.querySelectorAll(".card")
-let visibles = 0
-
-cards.forEach(c=>{
-if(c.style.display !== "none"){
-visibles++
-}
-})
-
-document.getElementById("contador").innerText =
-"Cajas mostradas: " + visibles
-
-}
-
-setTimeout(actualizarContador,500)
 
 </script>
 
