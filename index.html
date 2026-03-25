@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<title>Catálogo de Capuchones</title>
+
+<style>
+
+:root{
+--primary:#2c7be5;
+--dark:#1e2a38;
+--bg:#f4f7fb;
+--card:#ffffff;
+}
+
+body{
+font-family:'Segoe UI',sans-serif;
+background:var(--bg);
+margin:0;
+}
+
+/* HEADER */
+header{
+background:linear-gradient(90deg,var(--dark),var(--primary));
+color:white;
+padding:25px;
+text-align:center;
+box-shadow:0 4px 15px rgba(0,0,0,0.2);
+}
+
+header h1{
+margin:0;
+font-size:28px;
+letter-spacing:1px;
+}
+
+/* CONTROLES */
+.controls{
+display:flex;
+justify-content:center;
+gap:12px;
+padding:20px;
+flex-wrap:wrap;
+}
+
+input{
+padding:12px;
+font-size:14px;
+width:240px;
+border-radius:8px;
+border:1px solid #ccc;
+outline:none;
+transition:0.2s;
+}
+
+input:focus{
+border-color:var(--primary);
+box-shadow:0 0 5px rgba(44,123,229,0.3);
+}
+
+button{
+padding:10px 18px;
+border:none;
+background:var(--primary);
+color:white;
+cursor:pointer;
+border-radius:8px;
+transition:0.2s;
+font-weight:600;
+}
+
+button:hover{
+transform:translateY(-2px);
+background:#1a5fd1;
+}
+
+/* CONTADOR */
+#contador{
+text-align:center;
+font-size:18px;
+font-weight:600;
+margin-bottom:10px;
+color:#333;
+}
+
+/* GRID */
+.catalogo{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+gap:25px;
+padding:20px;
+}
+
+/* CARD */
+.card{
+background:var(--card);
+border-radius:14px;
+box-shadow:0 8px 20px rgba(0,0,0,0.08);
+padding:12px;
+transition:0.3s;
+position:relative;
+overflow:hidden;
+}
+
+.card:hover{
+transform:translateY(-5px) scale(1.02);
+box-shadow:0 12px 25px rgba(0,0,0,0.15);
+}
+
+/* BADGE BODEGA */
+.card::after{
+content:attr(data-bodega);
+position:absolute;
+top:10px;
+left:10px;
+font-size:11px;
+background:rgba(0,0,0,0.6);
+color:white;
+padding:3px 8px;
+border-radius:6px;
+}
+
+/* IMAGEN */
+.img-container{
+width:100%;
+height:220px;
+display:flex;
+align-items:center;
+justify-content:center;
+overflow:hidden;
+border-radius:10px;
+background:#f1f3f7;
+}
+
+.img-container img{
+max-width:100%;
+max-height:100%;
+object-fit:contain;
+cursor:pointer;
+transition:0.3s;
+}
+
+.img-container img:hover{
+transform:scale(1.08);
+}
+
+/* TEXTO */
+.card p{
+margin:10px 0 5px;
+font-weight:600;
+color:#444;
+}
+
+/* MODAL */
+.modal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.9);
+justify-content:center;
+align-items:center;
+z-index:1000;
+}
+
+.modal img{
+max-width:85%;
+max-height:85%;
+border-radius:12px;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+.close{
+position:absolute;
+top:20px;
+right:40px;
+font-size:35px;
+color:white;
+cursor:pointer;
+transition:0.2s;
+}
+
+.close:hover{
+color:#ff4d4d;
+}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+header h1{font-size:22px}
+input{width:100%}
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+<h1>📦 Catálogo de Capuchones</h1>
+</header>
+
+<div class="controls">
+
+<input type="text" id="buscador" placeholder="Buscar foto...">
+
+<button onclick="mostrarBodega('todas')">Todas</button>
+<button onclick="mostrarBodega('b1')">Bodega 1</button>
+<button onclick="mostrarBodega('b2')">Bodega 2</button>
+
+</div>
+
+<div id="contador"></div>
+
+<div class="catalogo" id="catalogo"></div>
+
+<div class="modal" id="modal">
+<span class="close" onclick="cerrar()">✖</span>
+<img id="imagenGrande">
+</div>
+
+<script>
+
+const catalogo = document.getElementById("catalogo")
+
+const bodega1 = 60
+const bodega2 = 23
+
+function crearImagenes(){
+for(let i=1;i<=bodega1;i++){
+crearCard("bodega1", i, "b1")
+}
+for(let i=1;i<=bodega2;i++){
+crearCard("bodega2", i, "b2")
+}
+}
+
+function crearCard(carpeta, numero, clase){
+
+let card = document.createElement("div")
+card.className = "card " + clase
+card.setAttribute("data-bodega", clase === "b1" ? "B1" : "B2")
+
+let container = document.createElement("div")
+container.className = "img-container"
+
+let img = document.createElement("img")
+img.src = `${carpeta}/foto${numero}.jpg`
+
+img.onerror = function(){
+if(this.src.includes(".jpg")) this.src = `${carpeta}/foto${numero}.jpeg`
+else if(this.src.includes(".jpeg")) this.src = `${carpeta}/foto${numero}.png`
+}
+
+img.onclick = function(){ abrir(this) }
+
+let titulo = document.createElement("p")
+titulo.innerText = `Foto ${numero}`
+
+container.appendChild(img)
+card.appendChild(container)
+card.appendChild(titulo)
+
+catalogo.appendChild(card)
+}
+
+crearImagenes()
+
+const buscador = document.getElementById("buscador")
+
+buscador.addEventListener("keyup", function(){
+
+let texto = buscador.value.toLowerCase()
+let cards = document.querySelectorAll(".card")
+
+cards.forEach(c=>{
+let nombre = c.innerText.toLowerCase()
+c.style.display = nombre.includes(texto) ? "block" : "none"
+})
+
+actualizarContador()
+
+})
+
+function mostrarBodega(bodega){
+
+let cards = document.querySelectorAll(".card")
+
+cards.forEach(c=>{
+if(bodega==="todas" || c.classList.contains(bodega)){
+c.style.display="block"
+}else{
+c.style.display="none"
+}
+})
+
+actualizarContador()
+}
+
+function abrir(img){
+document.getElementById("modal").style.display="flex"
+document.getElementById("imagenGrande").src = img.src
+}
+
+function cerrar(){
+document.getElementById("modal").style.display="none"
+}
+
+function actualizarContador(){
+
+let cards = document.querySelectorAll(".card")
+let visibles = 0
+
+cards.forEach(c=>{
+if(c.style.display !== "none"){
+visibles++
+}
+})
+
+document.getElementById("contador").innerText =
+"Cajas mostradas: " + visibles
+
+}
+
+setTimeout(actualizarContador,500)
+
+</script>
+
+</body>
+</html>

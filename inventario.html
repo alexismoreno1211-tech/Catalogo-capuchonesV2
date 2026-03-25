@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Inventario Capuchones PRO</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0d0f14;
+  color:#fff;
+}
+
+header{
+  background:#161920;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+h1{margin:0;font-size:18px}
+
+button{
+  padding:8px 15px;
+  border:none;
+  cursor:pointer;
+  border-radius:5px;
+}
+
+.login{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.login-box{
+  background:#161920;
+  padding:30px;
+  border-radius:10px;
+  width:300px;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+}
+
+.btn{
+  width:100%;
+  background:#e8ff47;
+  color:black;
+  font-weight:bold;
+}
+
+.container{
+  padding:20px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+td,th{
+  padding:10px;
+  border-bottom:1px solid #333;
+}
+
+.stock{
+  font-weight:bold;
+}
+
+.low{color:orange}
+.zero{color:red}
+.ok{color:lightgreen}
+
+.controls button{
+  margin:2px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login" class="login">
+  <div class="login-box">
+    <h2>Login</h2>
+    <input id="email" placeholder="Correo">
+    <input id="pass" type="password" placeholder="Contraseña">
+    <button class="btn" onclick="login()">Ingresar</button>
+    <p id="error"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+<header>
+  <h1>📦 Inventario</h1>
+  <div>
+    <span id="role"></span>
+    <button onclick="logout()">Salir</button>
+  </div>
+</header>
+
+<div class="container">
+
+<button id="addBtn" onclick="addItem()" style="display:none">+ Agregar</button>
+
+<table>
+<thead>
+<tr>
+<th>Ref</th>
+<th>Color</th>
+<th>Stock</th>
+<th>Acciones</th>
+</tr>
+</thead>
+
+<tbody id="tabla"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+
+// 🔥 CONFIG TUYA (la misma que ya tenías)
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH",
+  projectId: "TU_PROJECT"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let role = "operario"
+
+// LOGIN
+function login(){
+  let email = document.getElementById("email").value
+  let pass = document.getElementById("pass").value
+
+  auth.signInWithEmailAndPassword(email,pass)
+  .catch(e=>{
+    document.getElementById("error").innerText="Error login"
+  })
+}
+
+// LOGOUT
+function logout(){
+  auth.signOut()
+}
+
+// AUTH STATE
+auth.onAuthStateChanged(async user=>{
+  if(user){
+
+    document.getElementById("login").style.display="none"
+    document.getElementById("app").style.display="block"
+
+    // 🔥 rol automático
+    let doc = await db.collection("users").doc(user.uid).get()
+
+    if(!doc.exists){
+      await db.collection("users").doc(user.uid).set({role:"admin"})
+      role="admin"
+    }else{
+      role=doc.data().role
+    }
+
+    document.getElementById("role").innerText=role
+
+    if(role==="admin"){
+      document.getElementById("addBtn").style.display="inline-block"
+    }
+
+    loadData()
+
+  }else{
+    document.getElementById("login").style.display="flex"
+    document.getElementById("app").style.display="none"
+  }
+})
+
+// LOAD DATA
+function loadData(){
+
+  db.collection("inventario").onSnapshot(snap=>{
+
+    let html=""
+
+    snap.forEach(doc=>{
+
+      let d = doc.data()
+
+      let cls = d.stock==0?"zero":d.stock<50?"low":"ok"
+
+      html += `
+      <tr>
+        <td>${d.ref}</td>
+        <td>${d.color}</td>
+        <td class="stock ${cls}">${d.stock}</td>
+        <td class="controls">
+          <button onclick="cambiar('${doc.id}',1)">+</button>
+          <button onclick="cambiar('${doc.id}',-1)">-</button>
+        </td>
+      </tr>`
+    })
+
+    document.getElementById("tabla").innerHTML = html
+
+  })
+
+}
+
+// CAMBIAR STOCK
+function cambiar(id,val){
+
+  let ref = db.collection("inventario").doc(id)
+
+  db.runTransaction(async t=>{
+    let doc = await t.get(ref)
+    let nuevo = (doc.data().stock || 0) + val
+    if(nuevo < 0) nuevo = 0
+    t.update(ref,{stock:nuevo})
+  })
+
+}
+
+// AGREGAR
+function addItem(){
+
+  let ref = prompt("Referencia")
+  let color = prompt("Color")
+
+  db.collection("inventario").add({
+    ref:ref,
+    color:color,
+    stock:0
+  })
+
+}
+
+</script>
+
+</body>
+</html>
